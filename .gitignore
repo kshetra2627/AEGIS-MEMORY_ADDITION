@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+database/chroma/
+database/audit.db
+database/ingested_hashes.json
+logs/audit_log.json
+.streamlit/
