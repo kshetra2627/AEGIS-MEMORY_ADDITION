@@ -13,6 +13,25 @@ REFUSAL_MESSAGE = (
 MIN_CONFIDENCE = 40
 STRONG_SINGLE_CHUNK_BUFFER = 0.10
 
+HEDGE_PATTERNS = [
+    r"no information (is )?available",
+    r"do(?:es)?n?'?t? not (?:contain|specify|provide|include|address|cover)",
+    r"not (?:specified|available|provided|covered|addressed|mentioned) (?:in|by) the",
+    r"cannot (?:find|determine|confirm|locate)",
+    r"unable to (?:determine|find|confirm|locate)",
+    r"insufficient information",
+    r"no (?:specific |explicit )?(?:mention|reference) (?:of|to)",
+    r"chunks? (?:do|does) not (?:contain|provide|specify|address|cover)",
+]
+_HEDGE_RE = re.compile("|".join(HEDGE_PATTERNS), re.IGNORECASE)
+
+
+def _is_hedged_non_answer(answer_text: str) -> bool:
+    """Catches drafts where the LLM admits it has no answer but still attaches citation
+    tags to that admission (satisfying the syntactic citation check while asserting
+    nothing). Those must be refused, not shown as a confident, cited answer."""
+    return bool(_HEDGE_RE.search(answer_text))
+
 
 def _evidence_sufficient(qualifying_chunks: list[dict]) -> bool:
     if len(qualifying_chunks) >= 2:
@@ -43,6 +62,9 @@ def validate(in_domain: bool, chunks: list[dict], draft_answer: str, confidence:
 
     if not draft_answer or not draft_answer.strip():
         return {"passed": False, "reason": "empty_answer", "final_text": REFUSAL_MESSAGE}
+
+    if _is_hedged_non_answer(draft_answer):
+        return {"passed": False, "reason": "hedged_non_answer", "final_text": REFUSAL_MESSAGE}
 
     if confidence.get("score", 0) < MIN_CONFIDENCE:
         return {"passed": False, "reason": "low_confidence", "final_text": REFUSAL_MESSAGE}

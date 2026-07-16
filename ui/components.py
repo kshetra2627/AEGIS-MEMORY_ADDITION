@@ -224,14 +224,14 @@ def render_knowledge_sources(chunks: list[dict]):
             f'Avg. similarity: {round(avg_score * 100, 1)}%</div>',
             unsafe_allow_html=True,
         )
-        for c in group:
+        for i, c in enumerate(group):
             with st.expander(f"📄 Chunk {c['chunk_id']} — {round(c['score'] * 100, 1)}% similarity"):
                 st.write(f"**Document:** {c['title']}")
                 st.write(f"**Section:** {c.get('section') or '—'}")
                 st.write(f"**Clause:** {c.get('clause') or '—'}")
                 st.write(f"**Page:** {c.get('page')}")
                 st.write(f"**Similarity:** {round(c['score'] * 100, 1)}%")
-                st.button("📂 Open Document", key=f"open_{c['chunk_id']}", disabled=True,
+                st.button("📂 Open Document", key=f"open_{filename}_{c['chunk_id']}_{i}", disabled=True,
                           help="Document preview is available from the Knowledge Base page.")
                 citation_text = f"{c['title']} ({c['filename']}), Page {c['page']}, {c.get('clause') or c.get('section') or ''}, Chunk {c['chunk_id']}"
                 st.code(citation_text, language=None)

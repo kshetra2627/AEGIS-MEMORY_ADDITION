@@ -1,0 +1,35 @@
+{
+  "high_risk_patterns": [
+    "\\bignore\\b.*\\b(gdpr|policy|rule|regulation|compliance)\\b",
+    "\\bbypass\\b",
+    "\\bcross[- ]?border\\b",
+    "\\btransfer\\b.*\\b(outside|abroad|overseas|another (country|region))\\b",
+    "\\bwithout (review|approval)\\b",
+    "\\bjust (do it|this once|ignore)\\b",
+    "\\bsanction(ed|s)?\\b",
+    "\\bconfirm we can\\b",
+    "\\bskip (the|any) (review|approval|check)\\b"
+  ],
+  "medium_risk_patterns": [
+    "\\bvendor onboarding\\b",
+    "\\bcontractor(s)?\\b.*\\baccess\\b",
+    "\\bdocuments? (are )?needed\\b",
+    "\\bthird[- ]party\\b",
+    "\\bshare (data|information)\\b"
+  ],
+  "high_risk_topics": ["Sanctions", "AML"],
+  "cross_border_data_risk": {
+    "eu_markers": ["eu", "european union", "gdpr", "eea", "european economic area"],
+    "foreign_region_markers": [
+      "us", "u\\.s\\.", "usa", "united states", "non[- ]eu",
+      "outside (?:the )?(?:eu|europe|eea)", "abroad", "overseas",
+      "another (?:country|region)", "third country"
+    ],
+    "data_handling_verbs": [
+      "store", "storing", "stored", "host", "hosting", "hosted",
+      "transfer", "transferring", "transferred", "move", "moving", "moved",
+      "process", "processing", "processed", "share", "sharing", "shared",
+      "replicate", "replicating", "backup", "back up"
+    ]
+  }
+}
