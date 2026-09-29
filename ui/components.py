@@ -3,10 +3,18 @@ MetricCard, RiskBadge, StatusIndicator, DataTable, SkeletonLoader, EvidenceCard,
 TimelineNode, InsightCard, plus the agent response report and timeline renderers.
 """
 import html as _html
+import itertools
 import streamlit as st
 import pandas as pd
 import streamlit.components.v1 as components
 from ui.styles import risk_pill, owner_pill, confidence_pill, status_dot
+
+# Module-level counter for Open Document button keys.
+# Streamlit reruns the full module on every interaction, so this resets to a
+# fresh iterator at the start of each page render — guaranteeing unique keys
+# across all render_knowledge_sources calls on the same page, even when the
+# same chunk_id appears in multiple response cards.
+_btn_counter = itertools.count()
 
 NODE_LABELS = {
     "Query Classification": "Classification",
@@ -224,14 +232,15 @@ def render_knowledge_sources(chunks: list[dict]):
             f'Avg. similarity: {round(avg_score * 100, 1)}%</div>',
             unsafe_allow_html=True,
         )
-        for i, c in enumerate(group):
+        for c in group:
+            btn_idx = next(_btn_counter)
             with st.expander(f"📄 Chunk {c['chunk_id']} — {round(c['score'] * 100, 1)}% similarity"):
                 st.write(f"**Document:** {c['title']}")
                 st.write(f"**Section:** {c.get('section') or '—'}")
                 st.write(f"**Clause:** {c.get('clause') or '—'}")
                 st.write(f"**Page:** {c.get('page')}")
                 st.write(f"**Similarity:** {round(c['score'] * 100, 1)}%")
-                st.button("📂 Open Document", key=f"open_{filename}_{c['chunk_id']}_{i}", disabled=True,
+                st.button("📂 Open Document", key=f"open_doc_{btn_idx}_{filename}_{c['chunk_id']}", disabled=True,
                           help="Document preview is available from the Knowledge Base page.")
                 citation_text = f"{c['title']} ({c['filename']}), Page {c['page']}, {c.get('clause') or c.get('section') or ''}, Chunk {c['chunk_id']}"
                 st.code(citation_text, language=None)
@@ -333,16 +342,25 @@ def render_response_report(state: dict):
 
 # ---------------------------------------------------------------- Live staged status (Compliance Agent page)
 LIVE_STAGES = [
-    "Classifying Request...", "Identifying Owner...", "Searching Knowledge Base...",
-    "Validating Evidence...", "Writing Advisory...", "Checking Governance...",
-    "Assessing Risk...", "Logging Audit...",
+    "Classifying Request...", "Recalling Memory...", "Identifying Owner...",
+    "Searching Knowledge Base...", "Validating Evidence...", "Writing Advisory...",
+    "Checking Governance...", "Assessing Risk...", "Logging Audit...",
 ]
 
 NODE_TO_STAGE = {
-    "classify_topic": 0, "topic_routing": 1, "rag_retrieval": 2, "context_validation": 3,
-    "compliance_reasoning": 4, "citation_generation": 4, "confidence_calculation": 4,
-    "governance_validation": 5, "risk_classification": 6, "human_review_gate": 6,
-    "audit_logging": 7,
+    "classify_topic": 0,
+    "memory_recall": 1,
+    "topic_routing": 2,
+    "rag_retrieval": 3,
+    "context_validation": 4,
+    "compliance_reasoning": 5,
+    "citation_generation": 5,
+    "confidence_calculation": 5,
+    "governance_validation": 6,
+    "risk_classification": 7,
+    "human_review_gate": 7,
+    "audit_logging": 8,
+    "memory_retain": 8,
 }
 
 

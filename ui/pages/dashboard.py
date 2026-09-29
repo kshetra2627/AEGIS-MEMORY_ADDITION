@@ -23,7 +23,10 @@ def render():
     st.markdown('<div class="aegis-header">🛡️ Aegis</div>', unsafe_allow_html=True)
     st.markdown('<div class="aegis-tagline">Enterprise AI Agent for Compliance Operations</div>', unsafe_allow_html=True)
 
-    df = load_with_skeleton(load_audit_df, n=2)
+    from ui.auth import get_current_user
+    current_user = get_current_user()
+    user_id = current_user["user_id"] if current_user else None
+    df = load_with_skeleton(lambda: load_audit_df(user_id=user_id), n=2)
     if df is None:
         return
 
@@ -41,7 +44,23 @@ def render():
     with row1[0]:
         system_health_card(health["status"])
     with row1[1]:
-        metric_card("🤖", health["last_provider"].capitalize() if health["last_provider"] != "none" else "None", "AI Provider")
+        # Use the last-used provider from audit history when available.
+        # When no audit rows exist yet (new user / empty history), fall back to
+        # the first configured provider from env vars — same logic as the top bar.
+        last_prov = health["last_provider"]
+        if last_prov and last_prov.lower() not in {"none", ""}:
+            provider_display = last_prov.capitalize()
+        else:
+            provider_options = [
+                ("Groq", bool(os.getenv("GROQ_API_KEY", "").strip())),
+                ("Gemini", bool(os.getenv("GEMINI_API_KEY", "").strip())),
+                ("OpenRouter", bool(
+                    os.getenv("OPENROUTER_API_KEY", "").strip()
+                    and os.getenv("OPENROUTER_MODEL", "").strip()
+                )),
+            ]
+            provider_display = next((name for name, ok in provider_options if ok), "Not configured")
+        metric_card("🤖", provider_display, "AI Provider")
     with row1[2]:
         metric_card("📚", policy_stats["documents"], "Indexed Policies", animate=True)
     with row1[3]:

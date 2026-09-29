@@ -2,8 +2,12 @@
 __pycache__/
 *.pyc
 .env
+.env.local
+.env.*
+!.env.example
 database/chroma/
 database/audit.db
+database/auth.db
 database/ingested_hashes.json
 logs/audit_log.json
 .streamlit/

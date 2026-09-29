@@ -21,9 +21,15 @@ from agents.router import OWNER_MAP
 _LOCAL_OFFSET = datetime.now() - datetime.utcnow()
 
 
-def load_audit_df() -> pd.DataFrame:
-    """Fetches all audit rows and parses their JSON columns into real Python objects."""
-    rows = fetch_all()
+def load_audit_df(user_id: str | None = None) -> pd.DataFrame:
+    """Fetch this authenticated user's audit rows and parse JSON columns."""
+    if user_id is None:
+        from ui.auth import get_current_user
+        current_user = get_current_user()
+        user_id = current_user["user_id"] if current_user else None
+    if user_id is None:
+        return pd.DataFrame()
+    rows = fetch_all(user_id=user_id)
     if not rows:
         return pd.DataFrame()
     df = pd.DataFrame(rows)

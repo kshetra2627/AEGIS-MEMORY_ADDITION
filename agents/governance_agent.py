@@ -1,5 +1,9 @@
 """Governance node logic: verifies grounding, evidence sufficiency, and citation coverage.
 Discards the draft answer entirely on any failure and returns the fixed refusal string.
+
+T6: _every_paragraph_cited now accepts [Memory <id>] as supplementary precedent citations
+    but continues to require at least one [Chunk <id>] per paragraph.  An answer that
+    contains only [Memory] citations is refused just as if it had no citations at all.
 """
 import re
 from rag.retriever import SIMILARITY_THRESHOLD
@@ -25,6 +29,10 @@ HEDGE_PATTERNS = [
 ]
 _HEDGE_RE = re.compile("|".join(HEDGE_PATTERNS), re.IGNORECASE)
 
+# Regex for the two citation types.
+_CHUNK_CITE_RE = re.compile(r"\[Chunk\s+[^\]]+\]")
+_MEMORY_CITE_RE = re.compile(r"\[Memory\s+[^\]]+\]")
+
 
 def _is_hedged_non_answer(answer_text: str) -> bool:
     """Catches drafts where the LLM admits it has no answer but still attaches citation
@@ -42,12 +50,35 @@ def _evidence_sufficient(qualifying_chunks: list[dict]) -> bool:
 
 
 def _every_paragraph_cited(answer_text: str) -> bool:
+    """Return True only when every non-empty paragraph contains at least one [Chunk <id>].
+
+    [Memory <id>] citations are accepted as SUPPLEMENTARY context alongside chunk
+    citations, but they do not count as the required policy grounding.  A paragraph
+    that has only [Memory] tags fails this check just as if it had no citations.
+
+    This enforces the spec rule: "Memory informs, policy grounds."
+    """
     if not answer_text.strip():
         return False
     paragraphs = [p for p in answer_text.split("\n") if p.strip()]
     if not paragraphs:
         return False
-    return all(re.search(r"\[Chunk\s+[^\]]+\]", p) for p in paragraphs)
+    for p in paragraphs:
+        if not _CHUNK_CITE_RE.search(p):
+            # Paragraph has no [Chunk] citation — fail regardless of [Memory] presence.
+            return False
+    return True
+
+
+def _has_memory_only_citation(answer_text: str) -> bool:
+    """Returns True when the answer contains [Memory] citations but zero [Chunk] citations.
+
+    Used for a targeted governance note (not a hard refusal by itself — the
+    _every_paragraph_cited check handles the refusal path).
+    """
+    has_memory = bool(_MEMORY_CITE_RE.search(answer_text))
+    has_chunk = bool(_CHUNK_CITE_RE.search(answer_text))
+    return has_memory and not has_chunk
 
 
 def validate(in_domain: bool, chunks: list[dict], draft_answer: str, confidence: dict) -> dict:

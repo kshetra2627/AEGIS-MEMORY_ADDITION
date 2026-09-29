@@ -6,16 +6,38 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+_DEFAULT_GROQ_MODELS = ["openai/gpt-oss-20b", "openai/gpt-oss-120b"]
+
 
 def _call_groq(messages: list[dict], temperature: float) -> str:
     from openai import OpenAI
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GROQ_API_KEY not configured")
+
+    configured = os.getenv("GROQ_MODEL", "").strip()
+    models = [m for m in [configured, *_DEFAULT_GROQ_MODELS] if m]
+    seen = set()
+    ordered = []
+    for model in models:
+        if model not in seen:
+            seen.add(model)
+            ordered.append(model)
+
+    last_error = None
     client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1", timeout=20)
-    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-    resp = client.chat.completions.create(model=model, messages=messages, temperature=temperature)
-    return resp.choices[0].message.content
+    for model in ordered:
+        try:
+            resp = client.chat.completions.create(model=model, messages=messages, temperature=temperature)
+            return resp.choices[0].message.content
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            msg = str(exc).lower()
+            if "model_not_found" not in msg and "404" not in msg:
+                raise
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("No valid Groq model available")
 
 
 def _call_gemini(messages: list[dict], temperature: float) -> str:
