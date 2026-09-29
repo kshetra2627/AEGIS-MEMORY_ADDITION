@@ -14,25 +14,6 @@ correct compliance owner, with a human-review gate for in-domain high-risk cases
 
 ![Aegis Architecture](aegis_architecture.png)
 
-```mermaid
-graph TD
-    START([START]) --> A[Query Classification<br/>tool: classify_topic]
-    A --> B[Hindsight Memory Recall<br/>when enabled and in-domain]
-    B --> C[Topic Routing<br/>tool: identify_owner]
-    C --> D[Chroma Policy Retrieval<br/>tool: retrieve_policy_documents]
-    D --> E[Context Validation]
-    E --> F[Compliance Reasoning<br/>policy chunks + memory block<br/>LLM: Groq/Gemini/OpenRouter]
-    F --> G[Citation Generation<br/>tool: generate_citations]
-    G --> H[Confidence Calculation<br/>tool: calculate_confidence]
-    H --> I[Governance Validation]
-    I -->|in-domain| J[Risk Classification<br/>tool: classify_risk]
-    I -->|out-of-domain| M[Audit Logging<br/>tool: log_audit]
-    J -->|High risk| K[Human Review Gate<br/>tool: human_review]
-    J -->|Low/Medium| M
-    K --> M
-    M --> N[Hindsight Memory Retain<br/>eligible case or corpus gap]
-    N --> END([END])
-```
 
 Memory recall follows topic classification so a known topic can guide the recall query. The
 graph keeps recalled memory separate from Chroma policy chunks; compliance reasoning receives
